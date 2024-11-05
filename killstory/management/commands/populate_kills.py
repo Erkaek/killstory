@@ -2,7 +2,7 @@ import requests
 import time
 from django.core.management.base import BaseCommand
 from django.db import transaction, IntegrityError
-from aa_killstory.models import Killmail, Victim, Attacker, VictimItem, VictimContainedItem
+from killstory.models import Killmail, Victim, Attacker, VictimItem, VictimContainedItem
 from allianceauth.eveonline.models import EveCharacter
 from allianceauth.authentication.models import CharacterOwnership
 
