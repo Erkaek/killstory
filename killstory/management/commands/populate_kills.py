@@ -1,10 +1,15 @@
-import requests
+"""
+Management command to populate killmails for owned characters from the EVE Online API.
+"""
+
 import time
+import logging
+import requests
 from django.core.management.base import BaseCommand
 from django.db import transaction, IntegrityError
-from killstory.models import Killmail, Victim, Attacker, VictimItem, VictimContainedItem
 from allianceauth.eveonline.models import EveCharacter
 from allianceauth.authentication.models import CharacterOwnership
+from killstory.models import Killmail, Victim, Attacker, VictimItem, VictimContainedItem
 
 # API Endpoints
 KILLMAIL_LIST_ENDPOINT = "https://killstory.soeo.fr/{}.json"
@@ -12,23 +17,25 @@ KILLMAIL_DETAIL_ENDPOINT = "https://esi.evetech.net/latest/killmails/{}/{}"
 
 BATCH_SIZE = 100
 RETRY_LIMIT = 5
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
+    """Django management command to populate killmails data for owned characters."""
     help = 'Populate killmails data for owned characters'
 
     def handle(self, *args, **options):
+        """Main handler for the command execution."""
         character_ids = EveCharacter.objects.filter(
             id__in=CharacterOwnership.objects.values_list('character_id', flat=True)
         ).values_list('character_id', flat=True)
-        
-        batch = []
 
+        batch = []
         for character_id in character_ids:
             try:
                 killmails = self.fetch_killmail_list(character_id)
                 if not killmails:
-                    continue  # Passe au personnage suivant si aucun killmail trouvé
-                
+                    continue
+
                 for kill_id, kill_hash in killmails.items():
                     killmail_data = self.fetch_killmail_details(kill_id, kill_hash)
                     if not killmail_data:
@@ -41,49 +48,53 @@ class Command(BaseCommand):
                         batch.clear()
 
             except requests.HTTPError as e:
-                self.stdout.write(self.style.ERROR(f"Erreur de requête pour character_id {character_id}: {e}"))
+                logger.error("Request error for character_id %s: %s", character_id, e)
             except IntegrityError as e:
-                self.stdout.write(self.style.ERROR(f"Erreur d'intégrité pour character_id {character_id}: {e}"))
+                logger.error("Integrity error for character_id %s: %s", character_id, e)
 
         if batch:
             self.save_batch(batch)
-        self.stdout.write(self.style.SUCCESS("Population terminée"))
+        logger.info("Population completed")
 
     def fetch_killmail_list(self, character_id):
+        """Fetches the list of killmails for a given character."""
         try:
             response = self.make_request(KILLMAIL_LIST_ENDPOINT.format(character_id))
             if response and response.status_code == 404:
-                self.stdout.write(self.style.WARNING(f"Character_id {character_id} non trouvé, passage au suivant."))
+                logger.warning("Character_id %s not found, skipping.", character_id)
                 return {}
             return response.json() if response else {}
         except requests.RequestException as e:
-            self.stdout.write(self.style.ERROR(f"Erreur lors de la récupération des killmails pour character_id {character_id}: {e}"))
+            logger.error("Error fetching killmails for character_id %s: %s", character_id, e)
             return {}
 
     def fetch_killmail_details(self, kill_id, kill_hash):
+        """Fetches details for a specific killmail."""
         response = self.make_request(KILLMAIL_DETAIL_ENDPOINT.format(kill_id, kill_hash))
         return response.json() if response else {}
 
     def make_request(self, url):
+        """Makes a request with retries and error handling."""
         retries = 0
         while retries < RETRY_LIMIT:
             try:
-                response = requests.get(url)
+                response = requests.get(url, timeout=10)  # Added timeout here
                 if response.status_code in [304, 400, 422]:
                     return None
-                elif response.status_code in [420, 500, 503, 504]:
+                if response.status_code in [420, 500, 503, 504]:
                     time.sleep(2 ** retries)
                 else:
                     response.raise_for_status()
                     return response
             except requests.RequestException as e:
-                self.stdout.write(self.style.ERROR(f"Erreur réseau : {e}, tentative {retries + 1}"))
+                logger.error("Network error: %s, attempt %d", e, retries + 1)
             retries += 1
 
-        self.stdout.write(self.style.ERROR("Limite de tentatives atteinte, passage au killmail suivant."))
+        logger.error("Retry limit reached, moving to next killmail.")
         return None
 
     def create_killmail_instance(self, data):
+        """Creates a killmail instance from API data."""
         return Killmail(
             killmail_id=data['killmail_id'],
             killmail_time=data['killmail_time'],
@@ -96,6 +107,7 @@ class Command(BaseCommand):
         )
 
     def save_batch(self, batch):
+        """Saves a batch of killmails in a transaction."""
         with transaction.atomic():
             for killmail, killmail_data in batch:
                 try:
@@ -108,6 +120,7 @@ class Command(BaseCommand):
                     continue
 
     def create_victim_instance(self, killmail, victim_data):
+        """Creates a victim instance associated with a killmail."""
         victim = Victim(
             killmail=killmail,
             alliance_id=victim_data.get('alliance_id'),
@@ -122,6 +135,7 @@ class Command(BaseCommand):
             self.create_victim_item_instance(victim, item_data)
 
     def create_attacker_instance(self, killmail, attacker_data):
+        """Creates an attacker instance for a killmail."""
         attacker = Attacker(
             killmail=killmail,
             alliance_id=attacker_data.get('alliance_id'),
@@ -137,6 +151,7 @@ class Command(BaseCommand):
         attacker.save()
 
     def create_victim_item_instance(self, victim, item_data):
+        """Creates an item instance for the victim."""
         item = VictimItem(
             victim=victim,
             item_type_id=item_data['item_type_id'],
@@ -150,6 +165,7 @@ class Command(BaseCommand):
             self.create_contained_item_instance(item, contained_item_data)
 
     def create_contained_item_instance(self, parent_item, contained_item_data):
+        """Creates a contained item instance for a victim item."""
         contained_item = VictimContainedItem(
             parent_item=parent_item,
             item_type_id=contained_item_data['item_type_id'],

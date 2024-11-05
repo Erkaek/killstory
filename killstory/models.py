@@ -1,4 +1,5 @@
-"""Models for the killstory application.
+"""
+Models for the killstory application.
 
 This module defines models for storing killmail information,
 including killmails, victims, attackers, and associated items.
@@ -7,7 +8,7 @@ including killmails, victims, attackers, and associated items.
 from django.db import models
 
 
-# Table principale pour chaque killmail
+# Main table for each killmail
 class Killmail(models.Model):
     """Model for storing main killmail information, including time, location, and identifiers."""
 
@@ -23,13 +24,13 @@ class Killmail(models.Model):
     position_z = models.FloatField(null=True, blank=True)
 
     class Meta:
-        db_table = "killmail"
+        db_table = "kill_killmail"
 
     def __str__(self):
         return f"Killmail {self.killmail_id}"
 
 
-# Table pour enregistrer les détails de la victime dans le killmail
+# Table to store details of the victim in the killmail
 class Victim(models.Model):
     """Model for storing victim details within a killmail, such as character and damage taken."""
 
@@ -44,13 +45,13 @@ class Victim(models.Model):
     ship_type_id = models.IntegerField()
 
     class Meta:
-        db_table = "victim"
+        db_table = "kill_victim"
 
     def __str__(self):
         return f"Victim {self.character_id} in Killmail {self.killmail.killmail_id}"
 
 
-# Table pour enregistrer les attaquants associés à chaque killmail
+# Table to store attackers associated with each killmail
 class Attacker(models.Model):
     """Model for storing attacker information, including damage done and whether they landed the final blow."""
 
@@ -68,13 +69,13 @@ class Attacker(models.Model):
     weapon_type_id = models.IntegerField()
 
     class Meta:
-        db_table = "attacker"
+        db_table = "kill_attacker"
 
     def __str__(self):
         return f"Attacker {self.character_id} for Killmail {self.killmail.killmail_id}"
 
 
-# Table pour les items possédés par la victime et détruits ou perdus
+# Table for items owned by the victim that are destroyed or dropped
 class VictimItem(models.Model):
     """Model for storing items owned by the victim and either destroyed or dropped in the killmail."""
 
@@ -86,13 +87,13 @@ class VictimItem(models.Model):
     singleton = models.IntegerField()
 
     class Meta:
-        db_table = "victim_item"
+        db_table = "kill_victim_item"
 
     def __str__(self):
         return f"Item {self.item_type_id} for Victim {self.victim.character_id}"
 
 
-# Table pour les sous-items (contenus dans un item de la victime)
+# Table for sub-items (contained within a victim's item)
 class VictimContainedItem(models.Model):
     """Model for storing sub-items contained within a victim's item, with details on quantity and status."""
 
@@ -106,7 +107,7 @@ class VictimContainedItem(models.Model):
     singleton = models.IntegerField()
 
     class Meta:
-        db_table = "victim_contained_item"
+        db_table = "kill_victim_contained_item"
 
     def __str__(self):
         return (
