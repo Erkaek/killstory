@@ -5,8 +5,13 @@
 from django.conf import settings
 
 # Define default settings with getattr, allowing them to be overridden in the main project settings.
-KILLSTORY_API_LIST_ENDPOINT = getattr(settings, "KILLSTORY_API_LIST_ENDPOINT", "https://killstory.soeo.fr/{}.json")
-KILLSTORY_API_DETAIL_ENDPOINT = getattr(settings, "KILLSTORY_API_DETAIL_ENDPOINT", "https://esi.evetech.net/latest/killmails/{}/{}")
+KILLSTORY_API_LIST_ENDPOINT = getattr(
+    settings, "KILLSTORY_API_LIST_ENDPOINT", "https://killstory.soeo.fr/{}.json"
+)
+KILLSTORY_API_DETAIL_ENDPOINT = getattr(
+    settings, "KILLSTORY_API_DETAIL_ENDPOINT", "https://esi.evetech.net/latest/killmails/{}/{}"
+)
+
 
 # Optional settings with reasonable defaults
 KILLSTORY_BATCH_SIZE = getattr(settings, "KILLSTORY_BATCH_SIZE", 100)

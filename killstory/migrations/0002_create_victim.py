@@ -2,10 +2,8 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 class Migration(migrations.Migration):
-    initial = True
-
     dependencies = [
-        ('killstory', '0001_create_killmail'),
+        ('killstory', '0001_create_killmail'),  # Dépend de 0001_create_killmail
     ]
 
     operations = [
