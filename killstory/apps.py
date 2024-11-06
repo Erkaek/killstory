@@ -1,9 +1,8 @@
-# killstory/apps.py
-
-from django.apps import AppConfig
-from django_celery_beat.models import PeriodicTask, CrontabSchedule
 import logging
+from django.apps import AppConfig
 
+
+# Configuration du logger pour `apps.py`
 logger = logging.getLogger(__name__)
 
 class KillstoryConfig(AppConfig):
@@ -14,12 +13,16 @@ class KillstoryConfig(AppConfig):
         # Importer les tâches pour que Celery les détecte
         import killstory.tasks  # noqa: F401
 
-        # Configuration de la tâche cron si elle n'existe pas déjà
+        # Configurer la tâche cron si elle n'existe pas déjà
         self.setup_periodic_task()
 
     def setup_periodic_task(self):
-        """Configurer une tâche périodique cron pour exécuter populate_killmails tous les jours à minuit."""
+        """Configurer une tâche périodique cron pour exécuter `populate_killmails` tous les jours à 6h00 du matin."""
         try:
+            # Importer `PeriodicTask` et `CrontabSchedule` uniquement lorsque l'application est prête
+            from django_celery_beat.models import PeriodicTask, CrontabSchedule
+
+            # Création du planning (crontab) pour 6h00 chaque jour
             schedule, _ = CrontabSchedule.objects.get_or_create(
                 minute="0",
                 hour="6",
@@ -30,8 +33,8 @@ class KillstoryConfig(AppConfig):
             # Configurer la tâche périodique
             PeriodicTask.objects.get_or_create(
                 crontab=schedule,
-                name="Populate killmails daily",
-                task="killstory.tasks.populate_killmails",  # Référence complète de la tâche
+                name="Populate killmails daily",  # Nom unique pour la tâche
+                task="killstory.tasks.populate_killmails",  # Chemin complet de la tâche
             )
             logger.info("Tâche cron de population des killmails configurée avec succès.")
         except Exception as e:
