@@ -1,3 +1,11 @@
+"""
+Populates killmails for owned characters asynchronously.
+
+This function is a Celery shared task that fetches and processes killmails for 
+all characters owned by the user. It retrieves the list of owned character IDs, 
+processes the killmails for each character, and saves the killmails, victims, 
+and attackers in batches.
+"""
 # killstory/tasks.py
 
 import time

@@ -1,25 +1,48 @@
-{% extends 'killstory/base.html' %}
-{% load i18n %}
-{% load humanize %}
+{% extends "allianceauth/base.html" %}
 
-{% block details %}
+{% load static %}
 
-    <div class="panel panel-primary">
-        <div class="panel-heading">
-            <h3 class="panel-title">{% translate "Killstory Details" %}</h3>
-        </div>
-        <div class="panel-body" style="min-height: 100px;">
-            {{ text }}
+{% block title %}Kill Killmails{% endblock %}
+
+{% block page_title %}
+    {% include "framework/header/page-header.html" with title="Kill Killmails" %}
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                {% if kill_killmails.exists %}
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Kill ID</th>
+                                <th>System</th>
+                                <th>Ship Type</th>
+                                <th>ISK Lost</th>
+                                <th>Kill Time</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for kill in kill_killmails %}
+                                <tr>
+                                    <td>{{ kill.killmail_id }}</td>
+                                    <td>{{ kill.solar_system_id }}</td>
+                                    <td>{{ kill.victim.ship_type_id }}</td>
+                                    <td>{{ kill.victim.damage_taken }}</td>
+                                    <td>{{ kill.killmail_time|date:"F j, Y, g:i a" }}</td>
+                                    <td>
+                                        <a href="{% url 'killstory:kill_detail' kill.killmail_id %}" class="btn btn-primary btn-sm">View Details</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No kill mails available at the moment.</p>
+                {% endif %}
+            </div>
         </div>
     </div>
-
-{% endblock %}
-
-{% block extra_javascript %}
-{% endblock %}
-
-{% block extra_css %}
-{% endblock %}
-
-{% block extra_script %}
 {% endblock %}
